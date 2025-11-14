@@ -17,7 +17,9 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Search, Settings, User, LogOut } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 function getTitle(pathname: string) {
   if (pathname.startsWith('/dashboard')) {
@@ -44,6 +46,17 @@ function getTitle(pathname: string) {
 export function Header() {
   const pathname = usePathname();
   const title = getTitle(pathname);
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out: ', error);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
@@ -81,7 +94,7 @@ export function Header() {
               <span>Settings</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
                <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
