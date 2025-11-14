@@ -1,3 +1,4 @@
+
 import { HomeNavbar } from './home-navbar';
 import { Footer } from './footer';
 import { Button } from '../ui/button';
@@ -6,8 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { BrainCircuit, DatabaseZap, BellRing, Globe } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { HealthGuardAIChatbot } from './health-guard-ai-chatbot';
-import { EmergencyAlertForm } from './emergency-alert-form';
-import { Separator } from '../ui/separator';
 
 const features: {
   title: string;
@@ -105,7 +104,6 @@ export function Home() {
           </div>
         </section>
       </main>
-      <EmergencyAlertForm />
       <HealthGuardAIChatbot />
       <Footer />
     </div>
