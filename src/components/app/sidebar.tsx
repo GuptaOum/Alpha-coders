@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   BarChartBig,
   Bell,
+  ClipboardPulse,
   Database,
   LayoutDashboard,
   Map,
@@ -35,6 +36,11 @@ const menuItems = [
     href: '/mosquito-prediction',
     label: 'Mosquito Prediction',
     icon: Wind,
+  },
+  {
+    href: '/health-report-analysis',
+    label: 'Health Report Analysis',
+    icon: ClipboardPulse,
   },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
