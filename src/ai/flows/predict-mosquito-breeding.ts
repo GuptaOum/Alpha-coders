@@ -66,7 +66,7 @@ const mosquitoPredictionPrompt = ai.definePrompt({
 
   Analyze the following data:
   1.  **Weather Data**: {{{weatherData}}}
-  2.  **Satellite Imagery for Waterlogging**: {{media url=satelliteImageryData}}
+  2.  **Satellite Imagery for Waterlogging**: {{#if satelliteImageryData}}{{media url=satelliteImageryData}}{{else}}No satellite imagery provided.{{/if}}
   3.  **Historical Case Data**: {{{historicalCaseData}}}
 
   Based on your analysis, you must:

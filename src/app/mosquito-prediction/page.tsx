@@ -47,7 +47,7 @@ export default function MosquitoPredictionPage() {
       const mockInput = {
         weatherData:
           'Temp: 32°C, Humidity: 85%, Rainfall: 150mm in last 48 hours. Forecast: More rain expected.',
-        satelliteImageryData: satelliteImage?.imageUrl || '', // Using placeholder image as data URI
+        satelliteImageryData: '', // In a real app you would fetch the image and convert it to a data URI.
         historicalCaseData:
           'location,cases\nGreenwood Park,12\nRiverside District,8\nElm Street Suburbs,5',
       };
