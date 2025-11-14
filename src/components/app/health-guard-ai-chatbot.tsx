@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, User, Send, X, CornerDownLeft } from 'lucide-react';
+import { Bot, User, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -80,17 +81,12 @@ export function HealthGuardAIChatbot() {
           firestore,
           `users/${user.uid}/symptom_reports`
         );
-         const publicReportCollection = collection(
-          firestore,
-          `symptom_reports_public`
-        );
         const reportData = {
           ...response.symptomReport,
           userId: user.uid,
           timestamp: serverTimestamp(),
         };
         addDocumentNonBlocking(userReportCollection, reportData);
-        addDocumentNonBlocking(publicReportCollection, reportData);
       }
     } catch (error) {
       const errorMessage: Message = {
