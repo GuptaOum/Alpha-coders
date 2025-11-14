@@ -1,150 +1,89 @@
 /**
- * @file Firestore Security Rules for Sentinel.
- * @description This ruleset enforces a strict separation of public and private data. Public data (hospitals, pharmacies, weather, social media, disease reports, outbreak predictions, alerts) is readable by all users. Private user profile data is accessible only to the owning user and potentially admins (role is not yet implemented).
- * @dataStructure
- * - /hospitals/{hospitalId}: Public data about hospitals.
- * - /pharmacies/{pharmaciesId}: Public data about pharmacies.
- * - /weatherData/{weatherDataId}: Public weather data.
- * - /socialMediaData/{socialMediaDataId}: Public social media data.
- * - /diseaseReports/{diseaseReportId}: Public disease reports.
- * - /outbreakPredictions/{outbreakPredictionId}: Public outbreak predictions.
- * - /alerts/{alertId}: Public alerts.
- * - /userProfiles/{userId}: Private user profile data, only accessible to the owner.
- * @keySecurityDecisions
- * - Public data collections (hospitals, pharmacies, weatherData, socialMediaData, diseaseReports, outbreakPredictions, alerts) are readable by all users, including unauthenticated users.
- * - Listing of user profiles is disallowed for non-owners.
- * - No role-based access control is implemented beyond owner-only access to user profiles.
+ * @file Firebase Security Rules for Sentinel App
+ * @description This ruleset enforces a strict user-ownership model for personal data while allowing controlled access to symptom reports. Admin privileges are managed through document existence in a dedicated collection.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile data, accessible only to the user.
+ * - /users/{userId}/symptom_reports/{reportId}: Stores user symptom reports, accessible only to the user. The `userId` is denormalized onto each `SymptomReport` document.
+ * - /roles_admin/{userId}: Indicates admin privileges; document existence grants admin access.
+ *
+ * Key Security Decisions:
+ * - Users can only access their own user documents and symptom reports.
+ * - Admin privileges are granted based on document existence in `/roles_admin/{userId}`.
+ * - User listing is disabled for enhanced privacy.
+ *
+ * Denormalization for Authorization:
+ * - The `userId` is denormalized into the `symptom_reports` documents to achieve authorization independence. This avoids costly `get()` calls and ensures efficient security checks.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read hospital data. No write access is granted.
-     * @path /hospitals/{hospitalId}
-     * @allow (get, list): Any user can read hospital data.
-     * @deny (create, update, delete): No one can create, update, or delete hospital data through the client.
-     * @principle Public read access for reference data.
+     * @description Controls access to user profile data.
+     * @path /users/{userId}
+     * @allow (create) Signed-in user creates their own profile with matching userId.
+     * @allow (get, update, delete) Signed-in user accesses their own profile.
+     * @deny (create) Signed-in user attempts to create a profile with a mismatched userId.
+     * @deny (list) Listing all users is prohibited for privacy reasons.
+     * @principle Enforces document ownership for writes and prevents unauthorized data access.
      */
-    match /hospitals/{hospitalId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
+      allow get, update, delete: if isOwner(userId) && resource.data.id == userId;
+      allow list: if false;
     }
 
     /**
-     * @description Allows anyone to read pharmacy data. No write access is granted.
-     * @path /pharmacies/{pharmacyId}
-     * @allow (get, list): Any user can read pharmacy data.
-     * @deny (create, update, delete): No one can create, update, or delete pharmacy data through the client.
-     * @principle Public read access for reference data.
+     * @description Manages access to user symptom reports.
+     * @path /users/{userId}/symptom_reports/{reportId}
+     * @allow (create) Signed-in user creates a symptom report with a matching userId.
+     * @allow (get, list, update, delete) Signed-in user accesses their own symptom reports.
+     * @deny (create) Signed-in user attempts to create a symptom report for a different user.
+     * @principle Enforces document ownership for symptom reports and prevents unauthorized data access.
      */
-    match /pharmacies/{pharmacyId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+    match /users/{userId}/symptom_reports/{reportId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
+      allow get, list: if isOwner(userId);
+      allow update, delete: if isExistingOwner(userId) && resource.data.userId == userId;
     }
 
     /**
-     * @description Allows anyone to read weather data. No write access is granted.
-     * @path /weatherData/{weatherDataId}
-     * @allow (get, list): Any user can read weather data.
-     * @deny (create, update, delete): No one can create, update, or delete weather data through the client.
-     * @principle Public read access for reference data.
+     * @description Manages admin privileges based on document existence.
+     * @path /roles_admin/{userId}
+     * @allow (create) Only allow service accounts to create these documents, otherwise it will be open.
+     * @allow (get) Signed-in user checks if they have admin privileges.
+     * @deny (create, update, delete) Non-admins cannot modify the admin role collection.
+     * @deny (list) Listing admins is prohibited.
+     * @principle Restricts admin role management to authorized personnel.
      */
-    match /weatherData/{weatherDataId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
+    match /roles_admin/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
 
-    /**
-     * @description Allows anyone to read social media data. No write access is granted.
-     * @path /socialMediaData/{socialMediaDataId}
-     * @allow (get, list): Any user can read social media data.
-     * @deny (create, update, delete): No one can create, update, or delete social media data through the client.
-     * @principle Public read access for reference data.
-     */
-    match /socialMediaData/{socialMediaDataId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    /**
-     * @description Allows anyone to read disease reports. No write access is granted.
-     * @path /diseaseReports/{diseaseReportId}
-     * @allow (get, list): Any user can read disease reports.
-     * @deny (create, update, delete): No one can create, update, or delete disease reports through the client.
-     * @principle Public read access for reference data.
-     */
-    match /diseaseReports/{diseaseReportId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    /**
-     * @description Allows anyone to read outbreak predictions. No write access is granted.
-     * @path /outbreakPredictions/{outbreakPredictionId}
-     * @allow (get, list): Any user can read outbreak predictions.
-     * @deny (create, update, delete): No one can create, update, or delete outbreak predictions through the client.
-     * @principle Public read access for reference data.
-     */
-    match /outbreakPredictions/{outbreakPredictionId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    /**
-     * @description Allows anyone to read alerts. No write access is granted.
-     * @path /alerts/{alertId}
-     * @allow (get, list): Any user can read alerts.
-     * @deny (create, update, delete): No one can create, update, or delete alerts through the client.
-     * @principle Public read access for reference data.
-     */
-    match /alerts/{alertId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    /**
-     * @description Controls access to user profile information.  Users can only read/write their own profile data.
-     * @path /userProfiles/{userId}
-     * @allow (create): A user can create their own profile if the userId matches their auth UID.
-     * @allow (get, update, delete): A user can get, update, and delete their own profile if the userId matches their auth UID and the document exists.
-     * @deny (create): A user cannot create a profile for another user.
-     * @deny (get, update, delete): A user cannot get, update, or delete another user's profile.
-     * @deny (list):  Listing of user profiles is not allowed.
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
-     */
-    match /userProfiles/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false; // Listing user profiles is not allowed.
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-
-    /**
-     * @description Checks if the user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the request is made by the owner of the resource.
-     * @param {string} userId The user ID to compare against the request's auth UID.
-     * @return {boolean} True if the user is the owner, false otherwise.
-     */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-     /**
-      * @description Checks if the request is made by the owner of the resource and the document exists.
-      * @param {string} userId The user ID to compare against the request's auth UID.
-      * @return {boolean} True if the user is the owner and the document exists, false otherwise.
-      */
-    function isExistingOwner(userId) {
-      return isSignedIn() && isOwner(userId) && resource != null;
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create, update, delete: if false; // Only allow service accounts to manage admin roles
+      allow list: if false;
     }
   }
 }
