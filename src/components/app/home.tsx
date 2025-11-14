@@ -104,21 +104,8 @@ export function Home() {
             ))}
           </div>
         </section>
-
-        <section id="emergency-alert" className="container py-8 md:py-12 lg:py-24">
-          <div className="mx-auto flex max-w-2xl flex-col items-center space-y-4 text-center">
-            <h2 className="text-3xl font-bold leading-tight tracking-tighter sm:text-4xl md:text-5xl font-headline">
-              Emergency Alert System
-            </h2>
-            <p className="max-w-[700px] text-lg text-muted-foreground">
-              Broadcast critical alerts to the public in real-time.
-            </p>
-          </div>
-          <div className="mx-auto max-w-3xl mt-8">
-             <EmergencyAlertForm />
-          </div>
-        </section>
       </main>
+      <EmergencyAlertForm />
       <HealthGuardAIChatbot />
       <Footer />
     </div>

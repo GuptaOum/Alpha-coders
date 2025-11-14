@@ -15,13 +15,22 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmergencyAlert } from '@/ai/flows/send-emergency-alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Siren, X } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export function EmergencyAlertForm() {
   const { toast } = useToast();
   const [message, setMessage] = useState('');
   const [alertType, setAlertType] = useState<'email' | 'sms'>('email');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleSubmit = async () => {
     if (!message) {
@@ -41,6 +50,7 @@ export function EmergencyAlertForm() {
           description: result.confirmation,
         });
         setMessage('');
+        setIsDialogOpen(false);
       } else {
         throw new Error('Failed to send alert.');
       }
@@ -48,8 +58,7 @@ export function EmergencyAlertForm() {
       toast({
         variant: 'destructive',
         title: 'An error occurred',
-        description:
-          'Could not send the alert. Please try again later.',
+        description: 'Could not send the alert. Please try again later.',
       });
       console.error(error);
     } finally {
@@ -58,50 +67,81 @@ export function EmergencyAlertForm() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Compose Emergency Alert</CardTitle>
-        <CardDescription>
-          This message will be broadcast to all registered users. Use with
-          caution.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid w-full gap-2">
-          <Label htmlFor="message">Alert Message</Label>
-          <Textarea
-            id="message"
-            placeholder="Type your emergency message here..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={4}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Notification Channel</Label>
-          <RadioGroup
-            defaultValue="email"
-            className="flex gap-4"
-            value={alertType}
-            onValueChange={(value: 'email' | 'sms') => setAlertType(value)}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="email" id="r-email" />
-              <Label htmlFor="r-email">Email</Label>
+    <>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Compose Emergency Alert</DialogTitle>
+            <DialogDescription>
+              This message will be broadcast to all registered users. Use with
+              caution.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid w-full gap-2">
+              <Label htmlFor="message">Alert Message</Label>
+              <Textarea
+                id="message"
+                placeholder="Type your emergency message here..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={4}
+              />
             </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="sms" id="r-sms" />
-              <Label htmlFor="r-sms">SMS</Label>
+            <div className="space-y-2">
+              <Label>Notification Channel</Label>
+              <RadioGroup
+                defaultValue="email"
+                className="flex gap-4"
+                value={alertType}
+                onValueChange={(value: 'email' | 'sms') => setAlertType(value)}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="email" id="r-email" />
+                  <Label htmlFor="r-email">Email</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="sms" id="r-sms" />
+                  <Label htmlFor="r-sms">SMS</Label>
+                </div>
+              </RadioGroup>
             </div>
-          </RadioGroup>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button onClick={handleSubmit} disabled={isLoading} className="w-full">
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Send Broadcast Alert
-        </Button>
-      </CardFooter>
-    </Card>
+          </div>
+          <Button onClick={handleSubmit} disabled={isLoading} className="w-full">
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Send Broadcast Alert
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Button
+        size="icon"
+        className="fixed bottom-4 left-4 rounded-full h-14 w-14 shadow-lg z-50 bg-destructive hover:bg-destructive/90"
+        onClick={() => setIsDialogOpen(!isDialogOpen)}
+        aria-label="Toggle Emergency Alert Form"
+      >
+        <AnimatePresence>
+          {isDialogOpen ? (
+            <motion.div
+              key="close-siren"
+              initial={{ rotate: -90, scale: 0 }}
+              animate={{ rotate: 0, scale: 1 }}
+              exit={{ rotate: -90, scale: 0 }}
+            >
+              <X className="h-6 w-6" />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="siren"
+              initial={{ rotate: 90, scale: 0 }}
+              animate={{ rotate: 0, scale: 1 }}
+              exit={{ rotate: 90, scale: 0 }}
+            >
+              <Siren className="h-6 w-6" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Button>
+    </>
   );
 }
